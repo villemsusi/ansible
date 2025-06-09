@@ -1,4 +1,5 @@
 venv/
 keys/*
+!keys/example.pub
 
 inventory.ini

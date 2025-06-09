@@ -1,13 +1,19 @@
 ---
-- name: Secure SSH server and set up key-based login from a directory of keys
+- name: Secure SSH server, set up key-based login, change root password
   hosts: linux
   become: true
   vars:
     key_dir: "../keys"
     file_dir: "../files"
+  vars_prompt:
+    - name: root_pass_enc
+      prompt: Enter new root pass
+      private: true
+      encrypt: sha512_crypt
+      confirm: true
+      unsafe: true
 
   tasks:
-
   - name: Ensure .ssh directory exists
     file:
       path: "/home/{{ ssh_user }}/.ssh"
@@ -21,7 +27,8 @@
       user: "{{ ssh_user }}"
       state: present
       manage_dir: yes
-      key: "{{ lookup('file', '{{ key_dir }}/id_ed25519.pub') }}"
+      key: "{{ lookup('pipe', 'cat {{ key_dir }}/*.pub') }}"
+      exclusive: yes
 
   - name: Harden sshd_config
     template:
@@ -37,3 +44,7 @@
       state: restarted
       enabled: true
 
+  - name: Change root password
+    user:
+      name: "{{ ssh_user }}"
+      password: "{{ root_pass_enc }}"
